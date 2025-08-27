@@ -1,0 +1,248 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  memberships Membership[]
+  ownedTenants Tenant[] @relation("TenantOwner")
+
+  @@index([email])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner      User         @relation("TenantOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+  brandingTheme BrandingTheme?
+  subscriptions Subscription[]
+  featureFlags FeatureFlag[]
+  chatbotConfig ChatbotConfig?
+  apiKeys   ApiKey[]
+  usageEvents UsageEvent[]
+
+  @@index([ownerId])
+  @@index([slug])
+}
+
+model Membership {
+  id       String   @id @default(cuid())
+  userId   String
+  tenantId String
+  role     MembershipRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model BrandingTheme {
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  primary     String   @default("#3B82F6")
+  secondary   String   @default("#1E40AF")
+  accent      String   @default("#F59E0B")
+  surface     String   @default("#FFFFFF")
+  text        String   @default("#1F2937")
+  logoUrl     String?
+  faviconUrl  String?
+  font        String   @default("Inter")
+  darkMode    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  key          PlanKey  @unique
+  label        String
+  priceMonthly Int?
+  priceYearly  Int?
+  features     Json
+  limits       Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([key])
+}
+
+enum PlanKey {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  tenantId         String
+  planId           String
+  stripeCustomerId String?  @unique
+  stripeSubId      String?  @unique
+  status           SubscriptionStatus
+  trialEndsAt      DateTime?
+  cancelAt         DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  @@index([tenantId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubId])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  TRIALING
+}
+
+model FeatureFlag {
+  id       String   @id @default(cuid())
+  tenantId String
+  key      String
+  enabled  Boolean  @default(false)
+  value    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@index([key])
+}
+
+model ChatbotConfig {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  model         String   @default("gpt-3.5-turbo")
+  temperature   Float    @default(0.7)
+  systemPrompt  String   @default("You are a helpful AI assistant.")
+  allowedOrigins Json    @default("[]")
+  widgetOptions Json     @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  tenantId   String
+  name       String
+  hash       String    @unique
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([hash])
+}
+
+model UsageEvent {
+  id       String   @id @default(cuid())
+  tenantId String
+  type     String
+  quantity Int
+  metadata Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([tenantId, type, createdAt])
+}

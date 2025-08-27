@@ -1,90 +1,245 @@
-# Next.js Multi-Tenant Example
+# Multi-Tenant Chatbot SaaS Platform
 
-A production-ready example of a multi-tenant application built with Next.js 15, featuring custom subdomains for each tenant.
+A production-ready, multi-tenant chatbot platform built with Next.js 15, TypeScript, and modern web technologies. This platform allows businesses to create, customize, and deploy AI chatbots with their own branding and subdomain.
 
-## Features
+## 🚀 Features
 
-- ✅ Custom subdomain routing with Next.js middleware
-- ✅ Tenant-specific content and pages
-- ✅ Shared components and layouts across tenants
-- ✅ Redis for tenant data storage
-- ✅ Admin interface for managing tenants
-- ✅ Emoji support for tenant branding
-- ✅ Support for local development with subdomains
-- ✅ Compatible with Vercel preview deployments
+- **Multi-Tenant Architecture**: Isolated data per client with custom subdomains
+- **Custom Branding**: Full control over colors, fonts, logos, and themes
+- **Subscription Management**: Stripe integration with multiple pricing tiers
+- **Usage Metering**: Real-time tracking of API calls and token usage
+- **Feature Flags**: Plan-based feature gating and access control
+- **Modern UI**: Built with shadcn/ui and Tailwind CSS
+- **Type Safety**: Full TypeScript coverage with Zod validation
+- **Authentication**: NextAuth.js with email/password and OAuth support
 
-## Tech Stack
+## 🏗️ Architecture
 
-- [Next.js 15](https://nextjs.org/) with App Router
-- [React 19](https://react.dev/)
-- [Upstash Redis](https://upstash.com/) for data storage
-- [Tailwind 4](https://tailwindcss.com/) for styling
-- [shadcn/ui](https://ui.shadcn.com/) for the design system
+### Tech Stack
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: PostgreSQL with Prisma
+- **Authentication**: NextAuth.js with Prisma adapter
+- **Payments**: Stripe for subscriptions and billing
+- **Caching**: Redis (Upstash) for usage tracking
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Validation**: Zod for schema validation
 
-## Getting Started
+### Multi-Tenancy Model
+- **Subdomain-based**: Each tenant gets `{tenant}.domain.com`
+- **Data Isolation**: All database queries filtered by `tenantId`
+- **Edge Middleware**: Automatic subdomain routing and tenant resolution
+- **Role-based Access**: Owner, Admin, Editor, Viewer roles
 
-### Prerequisites
+## 📋 Prerequisites
 
-- Node.js 18.17.0 or later
-- pnpm (recommended) or npm/yarn
-- Upstash Redis account (for production)
+- Node.js 18+ and pnpm
+- PostgreSQL database
+- Redis instance (Upstash recommended)
+- Stripe account for payments
+- Google OAuth credentials (optional)
 
-### Installation
+## 🛠️ Setup Instructions
 
-1. Clone the repository:
+### 1. Clone and Install
 
-   ```bash
-   git clone https://github.com/vercel/platforms.git
-   cd platforms
-   ```
+```bash
+git clone <repository-url>
+cd iwt-chat
+pnpm install
+```
 
-2. Install dependencies:
+### 2. Environment Configuration
 
-   ```bash
-   pnpm install
-   ```
+Create a `.env.local` file with the following variables:
 
-3. Set up environment variables:
-   Create a `.env.local` file in the root directory with:
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/iwt_chat"
 
-   ```
-   KV_REST_API_URL=your_redis_url
-   KV_REST_API_TOKEN=your_redis_token
-   ```
+# Authentication
+AUTH_SECRET="your-auth-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-nextauth-secret-here"
 
-4. Start the development server:
+# OAuth (Optional)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
-   ```bash
-   pnpm dev
-   ```
+# Stripe
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
 
-5. Access the application:
-   - Main site: http://localhost:3000
-   - Admin panel: http://localhost:3000/admin
-   - Tenants: http://[tenant-name].localhost:3000
+# Redis
+REDIS_URL="redis://localhost:6379"
 
-## Multi-Tenant Architecture
+# App Configuration
+NEXT_PUBLIC_ROOT_DOMAIN="localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
-This application demonstrates a subdomain-based multi-tenant architecture where:
+### 3. Database Setup
 
-- Each tenant gets their own subdomain (`tenant.yourdomain.com`)
-- The middleware handles routing requests to the correct tenant
-- Tenant data is stored in Redis using a `subdomain:{name}` key pattern
-- The main domain hosts the landing page and admin interface
-- Subdomains are dynamically mapped to tenant-specific content
+```bash
+# Generate Prisma client
+pnpm db:generate
 
-The middleware (`middleware.ts`) intelligently detects subdomains across various environments (local development, production, and Vercel preview deployments).
+# Push schema to database
+pnpm db:push
 
-## Deployment
+# Seed the database with plans
+pnpm db:seed
+```
 
-This application is designed to be deployed on Vercel. To deploy:
+### 4. Stripe Configuration
 
-1. Push your repository to GitHub
-2. Connect your repository to Vercel
-3. Configure environment variables
-4. Deploy
+1. Create products and prices in your Stripe dashboard
+2. Set up webhook endpoints pointing to `/api/stripe/webhook`
+3. Configure the webhook to listen for:
+   - `checkout.session.completed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_failed`
 
-For custom domains, make sure to:
+### 5. Development
 
-1. Add your root domain to Vercel
-2. Set up a wildcard DNS record (`*.yourdomain.com`) on Vercel
+```bash
+# Start development server
+pnpm dev
+
+# Open Prisma Studio (optional)
+pnpm db:studio
+```
+
+## 🏃‍♂️ Quick Start
+
+### 1. Sign Up
+- Visit `http://localhost:3000`
+- Click "Start Free Trial"
+- Complete the signup form
+
+### 2. Onboarding
+- Create your organization
+- Customize branding
+- Configure chatbot settings
+- Choose a subscription plan
+
+### 3. Embed Chatbot
+- Get your embed code from the dashboard
+- Add the script to your website
+- Start chatting!
+
+## 📁 Project Structure
+
+```
+/app
+  /(marketing)          # Marketing pages (landing, pricing)
+  /(app)               # Protected app routes
+    /dashboard         # Main dashboard
+    /s/[subdomain]     # Tenant-specific pages
+    /onboarding        # Setup wizard
+    /settings          # Configuration pages
+  /api                 # API routes
+    /auth              # Authentication endpoints
+    /stripe            # Payment processing
+    /chat              # Chatbot API
+/components
+  /ui                  # shadcn/ui components
+  /chatbot             # Chat widget components
+/lib
+  /prisma.ts          # Database client
+  /auth.ts            # Auth configuration
+  /tenancy.ts         # Multi-tenant utilities
+  /stripe.ts          # Payment integration
+  /usage.ts           # Usage tracking
+  /plans.ts           # Subscription plans
+/prisma
+  /schema.prisma      # Database schema
+  /seed.ts           # Database seeding
+```
+
+## 🔧 API Endpoints
+
+### Authentication
+- `POST /api/auth/signup` - User registration
+- `GET/POST /api/auth/[...nextauth]` - NextAuth.js routes
+
+### Chatbot
+- `POST /api/chat` - Process chat messages
+- `GET /api/chatbot/config` - Get chatbot configuration
+
+### Billing
+- `POST /api/stripe/checkout` - Create checkout session
+- `POST /api/stripe/webhook` - Handle Stripe events
+
+## 🎨 Customization
+
+### Branding
+The platform supports full branding customization:
+- Primary/secondary colors
+- Custom fonts
+- Logo and favicon upload
+- Dark/light mode toggle
+
+### Chatbot Configuration
+- AI model selection
+- Temperature and response settings
+- System prompts
+- Allowed origins for embedding
+
+## 🔒 Security Features
+
+- **Row-level Security**: All data queries filtered by tenant
+- **API Key Authentication**: Secure chatbot API access
+- **Rate Limiting**: Per-tenant and per-IP limits
+- **Input Validation**: Zod schemas for all inputs
+- **CORS Protection**: Origin validation for embeds
+
+## 📊 Usage Tracking
+
+The platform tracks:
+- Token usage per conversation
+- API call frequency
+- Monthly conversation counts
+- Plan limit enforcement
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+1. Connect your repository to Vercel
+2. Set environment variables
+3. Deploy with automatic database migrations
+
+### Other Platforms
+- Ensure PostgreSQL and Redis are available
+- Set up environment variables
+- Run `pnpm build` and `pnpm start`
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Check the documentation in `/docs`
+- Open an issue on GitHub
+- Contact the development team
+
+## 🎯 Roadmap
+
+- [ ] Advanced AI model integration
+- [ ] Conversation analytics dashboard
+- [ ] Team collaboration features
+- [ ] API rate limiting improvements
+- [ ] Mobile app support
+- [ ] Enterprise SSO integration

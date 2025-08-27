@@ -5,17 +5,18 @@ function extractSubdomain(request: NextRequest): string | null {
   const url = request.url;
   const host = request.headers.get('host') || '';
   const hostname = host.split(':')[0];
+  const rootDomainFormatted = rootDomain.split(':')[0];
 
   // Local development environment
-  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+  if (url.includes('localhost') || url.includes('127.0.0.1') || hostname.includes(rootDomainFormatted)) {
     // Try to extract subdomain from the full URL
-    const fullUrlMatch = url.match(/http:\/\/([^.]+)\.localhost/);
+    const fullUrlMatch = url.match(new RegExp(`http://([^.]+)\\.${rootDomainFormatted.replace('.', '\\.')}`));
     if (fullUrlMatch && fullUrlMatch[1]) {
       return fullUrlMatch[1];
     }
 
     // Fallback to host header approach
-    if (hostname.includes('.localhost')) {
+    if (hostname.includes(`.${rootDomainFormatted}`)) {
       return hostname.split('.')[0];
     }
 
@@ -23,7 +24,6 @@ function extractSubdomain(request: NextRequest): string | null {
   }
 
   // Production environment
-  const rootDomainFormatted = rootDomain.split(':')[0];
 
   // Handle preview deployment URLs (tenant---branch-name.vercel.app)
   if (hostname.includes('---') && hostname.endsWith('.vercel.app')) {
